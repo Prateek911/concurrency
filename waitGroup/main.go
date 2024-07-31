@@ -1,26 +1,39 @@
 package main
 
-import "sync"
-
-type httpPkg struct{}
-
-func (httpPkg) Get(url string) {}
-
-var http httpPkg
+import (
+	"fmt"
+	"sync"
+)
 
 func main() {
-
+	ch := make(chan string, 2)
 	var wg sync.WaitGroup
-	var urls = []string{"http://www.golang.org/", "http://www.google.com/"}
 
-	for _, url := range urls {
-		wg.Add(1)
-		go func(url string) {
-			defer wg.Done()
-			http.Get(url)
+	str1 := "Hello from channel 1"
+	str2 := "Hello from channel 2"
 
-		}(url)
-	}
+	wg.Add(1)
+	go sendMessage(ch, str1, &wg)
 	wg.Wait()
 
+	wg.Add(1)
+	go sendMessage(ch, str2, &wg)
+	wg.Wait()
+
+	msg1 := <-ch
+	msg2 := <-ch
+	fmt.Println(msg1)
+	fmt.Println(msg2)
+
+}
+
+func sendMessage(ch chan<- string, msg string, wg *sync.WaitGroup) {
+	defer wg.Done()
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered from error")
+		}
+	}()
+
+	ch <- msg
 }
